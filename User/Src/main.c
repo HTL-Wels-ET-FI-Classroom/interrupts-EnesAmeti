@@ -25,6 +25,11 @@
 
 /* Private variables ---------------------------------------------------------*/
 
+static volatile int i = 0;
+static volatile int oben = 0;
+static volatile int unten = 0;
+static volatile int farbe = LCD_COLOR_BLUE;
+static volatile int timer = 1;
 /* Private function prototypes -----------------------------------------------*/
 static int GetUserButtonPressed(void);
 static int GetTouchState (int *xCoord, int *yCoord);
@@ -35,7 +40,33 @@ static int GetTouchState (int *xCoord, int *yCoord);
 void SysTick_Handler(void)
 {
 	HAL_IncTick();
+	if(i %2 == 0){
+		oben++;
+
+	}
+
+	if(i %2 == 1){
+		unten++;
+	}
 }
+void EXTI0_IRQHandler(void){
+	__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_0);
+	i++;
+
+}
+
+void EXTI2_IRQHAndler(void){
+	__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_2);
+
+	if(timer == 1){
+		farbe = LCD_COLOR_BLUE;
+		timer = 2;
+	}else if(timer == 2){
+		farbe = LCD_COLOR_GREEN;
+		timer = 1;
+	}
+}
+
 
 /**
  * @brief  The application entry point.
@@ -74,6 +105,34 @@ int main(void)
 
 	int cnt = 0;
 	/* Infinite loop */
+
+
+
+	GPIO_InitTypeDef pa0;
+	GPIO_InitTypeDef pg2;
+
+	pa0.Mode = GPIO_MODE_IT_RISING;
+	pa0.Alternate = 0;
+	pa0.Pin = GPIO_PIN_0;
+	pa0.Pull = GPIO_NOPULL;
+	pa0.Speed = GPIO_SPEED_MEDIUM;
+
+	pg2.Mode = GPIO_MODE_IT_RISING;
+	pg2.Alternate = 0;
+	pg2.Pin = GPIO_PIN_2;
+	pg2.Pull = GPIO_PULLUP;
+	pg2.Speed = GPIO_SPEED_MEDIUM;
+
+
+
+
+
+	HAL_GPIO_Init(GPIOA,&pa0);
+	HAL_GPIO_Init(GPIOG,&pg2);
+
+	HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+	HAL_NVIC_EnableIRQ(EXTI2_IRQn);
+
 	while (1)
 	{
 		//execute main loop every 100ms
@@ -85,6 +144,12 @@ int main(void)
 		LCD_SetTextColor(LCD_COLOR_BLUE);
 		LCD_SetPrintPosition(5, 0);
 		printf("   Timer: %.1f", cnt/10.0);
+
+		LCD_SetFont(&Font20);
+		LCD_SetTextColor(farbe);
+		LCD_SetPrintPosition(6, 0);
+		printf(" Timer: %.1f",unten/1000.0);
+
 
 		// test touch interface
 		int x, y;
